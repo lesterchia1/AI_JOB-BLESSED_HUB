@@ -1,0 +1,11 @@
+streamlit
+pandas
+python-dotenv
+sqlalchemy
+psycopg2-binary
+groq
+openai
+langchain-groq
+langchain-openai
+sentence-transformers
+PyPDF2
