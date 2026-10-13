@@ -2,7 +2,7 @@ streamlit
 pandas
 python-dotenv
 sqlalchemy
-psycopg2-binary
+psycopg[binary]
 groq
 openai
 langchain-groq
