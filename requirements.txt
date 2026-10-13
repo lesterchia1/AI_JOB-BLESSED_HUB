@@ -1,0 +1,12 @@
+# AI Job Hunt OS — requirements.txt
+
+streamlit
+pandas
+python-dotenv
+SQLAlchemy
+groq
+openai
+langchain-groq
+langchain-openai
+sentence-transformers
+PyPDF2
