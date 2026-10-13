@@ -261,7 +261,7 @@ def get_engine():
         pool_recycle=300
     )
     # This will create tables if they don't exist. Safe to run on every startup.
-    Base.metadata.create_all(engine)
+    #Base.metadata.create_all(engine)
     return engine
 
 
