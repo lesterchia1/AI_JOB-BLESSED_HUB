@@ -102,9 +102,15 @@ STAGES = [
     {"id": "Rejected",     "name": "Rejected",     "color": "#e74c3c"},
 ]
 
-# Ensure the connection string starts with postgresql:// for SQLAlchemy
+# ============================================================
+# 🔌 DATABASE URL & DRIVER SETUP (OPTION 1: psycopg v3)
+# ============================================================
+
+# Ensure the connection string uses the psycopg (v3) driver explicitly
 if SUPABASE_DB_URL.startswith("postgres://"):
-    DATABASE_URL = SUPABASE_DB_URL.replace("postgres://", "postgresql://", 1)
+    DATABASE_URL = SUPABASE_DB_URL.replace("postgres://", "postgresql+psycopg://", 1)
+elif SUPABASE_DB_URL.startswith("postgresql://"):
+    DATABASE_URL = SUPABASE_DB_URL.replace("postgresql://", "postgresql+psycopg://", 1)
 else:
     DATABASE_URL = SUPABASE_DB_URL
 
