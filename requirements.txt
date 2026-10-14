@@ -1,4 +1,7 @@
+torch            #new
+torchvision      #new
 streamlit
+transformers     #new
 pandas
 python-dotenv
 sqlalchemy
@@ -9,3 +12,5 @@ langchain-groq
 langchain-openai
 sentence-transformers
 PyPDF2
+
+
