@@ -1,0 +1,14 @@
+torch            #new
+torchvision      #new
+streamlit
+transformers     #new
+pandas
+python-dotenv
+sqlalchemy
+psycopg[binary]
+groq
+openai
+langchain-groq
+langchain-openai
+sentence-transformers
+PyPDF2
