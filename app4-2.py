@@ -1,5 +1,5 @@
 """
-AI Job Blessed Hub — Enhanced Edition v4.2
+AI Job Hunt OS — Enhanced Edition v4.2
 Streamlit app tracking job applications with human-in-the-loop editing,
 Groq prompt cache pricing calculations, dynamic standard file naming,
 local downloads, and Supabase Storage bucket sync.
@@ -21,7 +21,13 @@ from sqlalchemy import Column, DateTime, Float, Integer, String, Text, create_en
 from sqlalchemy.orm import declarative_base, sessionmaker
 from groq import Groq
 from openai import OpenAI
-from streamlit_lexical_extended import streamlit_lexical
+
+# Safe import for rich text editor component
+try:
+    from streamlit_lexical_extended import streamlit_lexical
+    HAS_LEXICAL = True
+except ImportError:
+    HAS_LEXICAL = False
 
 # Document generation packages
 from docx import Document
@@ -180,7 +186,6 @@ def compute_cost_usd(
     """Calculates total request cost taking cached prompt tokens into account."""
     p = get_pricing(model_id)
     
-    # Calculate uncached input tokens
     uncached_input_tokens = max(0, input_tokens - cached_tokens)
     
     uncached_cost = (uncached_input_tokens / 1_000_000) * p.get("input", 0.0)
@@ -265,13 +270,21 @@ def db_session():
     return get_session_factory()()
 
 # ---------------------------------------------------------------------------
-# 3. HELPER UTILITIES (NAMING, COMPILATION, SUPABASE STORAGE)
+# 3. HELPER UTILITIES
 # ---------------------------------------------------------------------------
+
+def render_editor(default_text: str, key: str) -> str:
+    """Renders WYSIWYG editor if available, otherwise falls back to st.text_area."""
+    if HAS_LEXICAL:
+        edited = streamlit_lexical(value=default_text, key=key)
+        return edited if edited is not None else default_text
+    else:
+        return st.text_area("Edit Document Content", value=default_text, height=300, key=key)
 
 def get_next_sequence_number() -> int:
     with db_session() as db:
         max_seq = db.query(func.max(Application.seq_num)).scalar()
-        return (max_seq or 285) + 1  # Default fallback sequence starts at 286
+        return (max_seq or 285) + 1
 
 def format_doc_filename(
     doc_type: str, role_title: str, company_name: str, seq_number: int, prefix: str = "PWA"
@@ -362,7 +375,6 @@ def load_llm_for(provider: str, model_id: str):
     return None, "LLM Key Missing"
 
 def _extract_usage_from_langchain(result) -> tuple[int, int, int]:
-    """Extracts (input_tokens, output_tokens, cached_tokens) from response metadata."""
     um = getattr(result, "usage_metadata", None) or {}
     rm = getattr(result, "response_metadata", None) or {}
     tu = rm.get("token_usage") or rm.get("usage") or {}
@@ -370,7 +382,6 @@ def _extract_usage_from_langchain(result) -> tuple[int, int, int]:
     input_tokens = int(um.get("input_tokens") or tu.get("prompt_tokens") or 0)
     output_tokens = int(um.get("output_tokens") or tu.get("completion_tokens") or 0)
     
-    # Extract cache details if provided by API (e.g., prompt_tokens_details)
     ptd = tu.get("prompt_tokens_details") or {}
     cached_tokens = int(ptd.get("cached_tokens") or um.get("input_token_details", {}).get("cache_read") or 0)
 
@@ -461,7 +472,6 @@ def render_sidebar():
         nav = st.radio("Navigation", ["📊 Tracker", "➕ New Application", "📈 Analytics"], index=1)
         st.markdown("---")
         
-        # Model selector
         options = list(MODEL_REGISTRY.keys())
         selected = st.selectbox("Select Model", options, index=0)
         st.session_state["selected_model_key"] = selected
@@ -470,7 +480,7 @@ def render_sidebar():
 
 def view_new_application():
     st.title("➕ New Application & AI Document Hub")
-    st.caption("Customize filenames, select selective AI tasks, edit in WYSIWYG, and sync to Supabase.")
+    st.caption("Customize filenames, select selective AI tasks, edit, and sync to Supabase.")
 
     auto_seq = get_next_sequence_number()
 
@@ -532,7 +542,6 @@ def view_new_application():
             else:
                 st.warning("Skipped Cover Letter generation: Base resume or job description missing.")
 
-        # Persist Application row in Supabase database
         app_id = svc_create_application(
             company=company, role=role, job_url=job_url,
             job_description=job_description, resume_text=tailored_resume,
@@ -546,24 +555,17 @@ def view_new_application():
         }
         st.success(f"Application #{app_id} created successfully!")
 
-    # -------------------------------------------------------------------
-    # Human-in-the-Loop Editing & Export Workspace (Choice e)
-    # -------------------------------------------------------------------
     app_data = st.session_state.get("active_app")
     if app_data:
         st.markdown("---")
         st.header("✏️ Human-in-the-Loop Edit & Export Workspace")
 
-        # --- Resume Workspace ---
         if app_data.get("tailored_resume"):
             st.subheader("📄 Edit Tailored Resume")
             res_filename = format_doc_filename("resume", app_data["role"], app_data["company"], app_data["seq_num"], app_data["prefix"])
             st.caption(f"Standardized Filename: `{res_filename}`")
 
-            edited_resume = streamlit_lexical(
-                value=app_data["tailored_resume"],
-                key="resume_editor"
-            ) or app_data["tailored_resume"]
+            edited_resume = render_editor(app_data["tailored_resume"], key="resume_editor")
 
             res_docx = generate_docx_bytes(edited_resume)
             res_pdf = generate_pdf_bytes(edited_resume)
@@ -577,17 +579,13 @@ def view_new_application():
                 svc_update_application_files(app_data["app_id"], resume_filename=f"{res_filename}.pdf", resume_storage_url=public_url)
                 st.success(f"Uploaded! Filename stored in DB: `{res_filename}.pdf`")
 
-        # --- Cover Letter Workspace ---
         if app_data.get("cover_letter"):
             st.markdown("---")
             st.subheader("✉️ Edit Cover Letter")
             cov_filename = format_doc_filename("cover_letter", app_data["role"], app_data["company"], app_data["seq_num"], app_data["prefix"])
             st.caption(f"Standardized Filename: `{cov_filename}`")
 
-            edited_cover = streamlit_lexical(
-                value=app_data["cover_letter"],
-                key="cover_editor"
-            ) or app_data["cover_letter"]
+            edited_cover = render_editor(app_data["cover_letter"], key="cover_editor")
 
             cov_docx = generate_docx_bytes(edited_cover)
             cov_pdf = generate_pdf_bytes(edited_cover)
