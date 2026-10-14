@@ -258,7 +258,10 @@ def get_engine():
     engine = create_engine(
         DATABASE_URL, 
         pool_pre_ping=True, 
-        pool_recycle=300
+        #pool_recycle=300
+        pool_recycle=120,   # Recycle idle connections every 2 minutes
+        pool_size=5,        # Keep baseline connections low
+        max_overflow=5      # Allow small connection bursts
     )
     # This will create tables if they don't exist. Safe to run on every startup.
     #Base.metadata.create_all(engine)
