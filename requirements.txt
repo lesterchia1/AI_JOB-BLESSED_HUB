@@ -1,7 +1,5 @@
-torch            #new
-torchvision      #new
 streamlit
-transformers     #new
+streamlit-lexical-extended
 pandas
 python-dotenv
 sqlalchemy
@@ -12,3 +10,6 @@ langchain-groq
 langchain-openai
 sentence-transformers
 PyPDF2
+python-docx
+reportlab
+supabase
