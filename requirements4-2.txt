@@ -1,15 +1,24 @@
-streamlit
-streamlit-lexical-extended
-pandas
-python-dotenv
-sqlalchemy
-psycopg[binary]
-groq
-openai
-langchain-groq
-langchain-openai
-sentence-transformers
-PyPDF2
-python-docx
-reportlab
-supabase
+# Core UI + data
+streamlit>=1.35.0
+pandas>=2.0.0
+
+# Environment
+python-dotenv>=1.0.0
+
+# Database (Supabase PostgreSQL)
+SQLAlchemy>=2.0.0
+psycopg[binary]>=3.1.0
+
+# LLM providers
+groq>=0.11.0
+openai>=1.30.0
+
+# LangChain integrations
+langchain-groq>=0.2.0
+langchain-openai>=0.2.0
+
+# Embeddings / match score
+sentence-transformers>=3.0.0
+
+# PDF parsing
+PyPDF2>=3.0.0
