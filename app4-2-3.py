@@ -1133,12 +1133,16 @@ def view_tracker(search: str):
     if df.empty:
         st.info("No applications yet. Use **➕ New Application** in the sidebar to add one.")
     else:
-        st.subheader("🧲 Drag & drop board")
+        head_l, head_r = st.columns([4, 1])
+        with head_l:
+            st.subheader("🧲 Drag & drop board")
+        with head_r:
+            show_details = st.toggle("Card details", value=False, key="show_card_details") 
         st.caption("Drag a card into another stage column to update its status.")
         render_dnd_board(df)
-
-        st.markdown("---")
-        if st.toggle("Show card details & actions", value=False):    #new
+        if show_details:    #NEW
+            st.markdown("---")
+            st.subheader("🗂 Card details & actions")    #NEW
             render_kanban(df)
 
 
