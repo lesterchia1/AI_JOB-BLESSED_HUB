@@ -1,0 +1,38 @@
+# For app.py v4.2.3 (Edit & Export + drag-and-drop)
+# Requires Python 3.11+ (streamlit-lexical-extended)
+
+# Core UI + data
+streamlit>=1.51.0
+pandas>=2.0.0
+
+# Environment
+python-dotenv>=1.0.0
+
+# Database (Supabase PostgreSQL)
+SQLAlchemy>=2.0.0
+psycopg[binary]>=3.1.0
+
+# LLM providers
+groq>=0.11.0
+openai>=1.30.0
+
+# LangChain integrations
+langchain-groq>=0.2.0
+langchain-openai>=0.2.0
+
+# Embeddings / match score
+sentence-transformers>=3.0.0
+
+# PDF parsing (resume upload)
+PyPDF2>=3.0.0
+
+# Document export (Edit & Export)
+python-docx>=1.1.0
+reportlab>=4.0.0
+
+# UI components
+streamlit-sortables>=0.3.0
+streamlit-lexical-extended>=0.3.0
+
+# Timezone data (Asia/Singapore filenames on Windows / slim images)
+tzdata
