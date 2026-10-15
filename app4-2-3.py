@@ -678,7 +678,7 @@ def classify_email_status(body: str) -> str:
 # 3b. DOCUMENT NAMING HELPERS
 # ---------------------------------------------------------------------------
 
-DOC_NUMBER_START = 290
+DOC_NUMBER_START = 291
 
 
 def sanitize_filename_part(value: str, max_len: int = 60) -> str:
@@ -687,6 +687,8 @@ def sanitize_filename_part(value: str, max_len: int = 60) -> str:
     value = re.sub(r"\s+", " ", value)
     return value.strip(" .")[:max_len].strip(" .")
 
+def clean_text(s) -> str:          # <-- NEW : Add this
+    return re.sub(r"\*+", "", str(s or "")).strip()    # NEW 
 
 def _today_ddmmyy() -> str:
     """Date in Singapore time (Streamlit Cloud servers run in UTC)."""
@@ -1026,6 +1028,7 @@ def render_dnd_board(df: pd.DataFrame):
             rid = int(row["id"])
             current_status[rid] = stage["id"]
             items.append(f"#{rid} · {row['role']} @ {row['company']}")
+            items.append(f"#{rid} · {clean_text(row['role'])} @ {clean_text(row['company'])}") #new
         containers.append({"header": stage["id"], "items": items})
 
     # New widget key whenever the data changes -> the component re-initialises
@@ -1075,6 +1078,7 @@ def render_kanban(df: pd.DataFrame):
             for _, row in stage_df.iterrows():
                 with st.container(border=True):
                     st.markdown(f"**{row['role']}**")
+                    st.markdown(f"**{clean_text(row['role'])}**")  #NEW
                     st.caption(f"🏢 {row['company']}")
                     if row.get("match_score"):
                         st.caption(f"🎯 {row['match_score']}")
@@ -1134,8 +1138,8 @@ def view_tracker(search: str):
         render_dnd_board(df)
 
         st.markdown("---")
-        st.subheader("🗂 Card details & actions")
-        render_kanban(df)
+        if st.toggle("Show card details & actions", value=False):    #new
+            render_kanban(df)
 
 
 def view_new_application():
@@ -1172,6 +1176,7 @@ def view_new_application():
         submitted = st.form_submit_button("🔍 Analyze & Add", type="primary")
 
     if submitted:
+        company, role = clean_text(company), clean_text(role)   # <-- NEW: add this
         if not company or not role:
             st.error("Company and Role are required.")
             return
