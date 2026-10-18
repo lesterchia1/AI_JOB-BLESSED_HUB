@@ -141,6 +141,11 @@ else:
 # ============================================================
 
 MODEL_REGISTRY = {
+    "Qwen 3.5 9B (Hugging Face)": {
+        "provider": "ai_singapore",  # Routes through the OpenAI-compatible HF serverless endpoint using HF_TOKEN
+        "model_id": "Qwen/Qwen3.5-9B",
+        "description": "Qwen 3.5 9B model from Hugging Face for precise instruction following & anti-hallucination.",
+    },
     "Sea-Lion v4 27B": {
         "provider": "ai_singapore",
         "model_id": "aisingapore/Gemma-SEA-LION-v4-27B-IT",
@@ -170,6 +175,15 @@ DEFAULT_MODEL_KEY = "Sea-Lion v4 27B"
 # ============================================================
 
 MODEL_PRICING = {
+    # --- Qwen 3.5 9B (Hugging Face Free/Serverless Tier) ---
+    "Qwen/Qwen3.5-9B": {
+        "input": 0.0,
+        "cached_input": 0.0,
+        "output": 0.0,
+        "context_window": 131072,
+        "max_output": 32768,
+    },
+    
     # --- Groq: GPT-OSS 120B ---
     "openai/gpt-oss-120b": {
         "input": 0.15,           # $0.15 / 1M  →  6.7M tokens per $1
@@ -344,19 +358,31 @@ def load_llm_for(provider: str, model_id: str):
             return None, f"Groq init failed: {e}"
 
     if provider == "ai_singapore":
-        if not SEALION_API_KEY:
-            return None, "AI Singapore (Sea-Lion) API key not set"
+        #if not SEALION_API_KEY:
+        #    return None, "AI Singapore (Sea-Lion) API key not set"
+
+        # Automatically use SEALION_API_KEY if present, otherwise fall back to HF_TOKEN for Hugging Face endpoints  # NEW
+        api_key_to_use = SEALION_API_KEY or HF_TOKEN   #NEW
+        base_url_to_use = AI_SINGAPORE_BASE_URL if SEALION_API_KEY else "https://api-inference.huggingface.co/v1/"   # NEW
+
+        if not api_key_to_use:  #NEW
+            return None, "API key or HF_TOKEN not set for Hugging Face / Sea-Lion endpoint"  #NEW
+      
         try:
             from langchain_openai import ChatOpenAI
             llm = ChatOpenAI(
                 model=model_id,
                 temperature=0.7,
-                api_key=SEALION_API_KEY,
-                base_url=AI_SINGAPORE_BASE_URL,
+                #api_key=SEALION_API_KEY,
+                #base_url=AI_SINGAPORE_BASE_URL,
+                api_key=api_key_to_use,
+                base_url=base_url_to_use,
             )
-            return llm, f"AI Singapore ({model_id})"
+            #return llm, f"AI Singapore ({model_id})"
+            return llm, f"Provider ({model_id})"
         except Exception as e:
-            return None, f"AI Singapore init failed: {e}"
+            #return None, f"AI Singapore init failed: {e}"
+            return None, f"Provider init failed: {e}" #NEW
 
     return None, f"Unknown provider: {provider}"
 
@@ -614,10 +640,20 @@ def call_ai_singapore_direct(prompt: str, operation: str = "direct_test") -> str
 
 
 def tailor_resume(resume_text: str, job_description: str) -> str:
-    prompt = f"""You are an expert resume writer.
-Rewrite the resume below to emphasize experience relevant to the job description.
+    #prompt = f"""You are an expert resume writer.
+#Rewrite the resume below to emphasize experience relevant to the job description.
+#Use quantifiable achievements and keywords from the job posting.
+#Keep the format clean and professional. Do NOT invent experience.
+
+    
+    prompt = f"""You are an objective professional resume writer. Your task is to draft a resume based ONLY on the provided job description.
+Strict Rules:
 Use quantifiable achievements and keywords from the job posting.
+Do not invent companies, job titles, dates, or metrics (e.g., percentages, dollar amounts) that are missing from the raw text.
+If a metric is not explicitly stated in the source text, describe the qualitative impact instead of guessing a number.
+If information is missing, use placeholders like [Insert Metric] rather than fabricating data.
 Keep the format clean and professional. Do NOT invent experience.
+
 
 JOB DESCRIPTION:
 {job_description}
