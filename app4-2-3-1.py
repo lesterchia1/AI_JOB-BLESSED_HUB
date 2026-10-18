@@ -957,7 +957,7 @@ def render_model_selector():
 
 def render_sidebar():
     with st.sidebar:
-        st.title("💼 AI Job Blessed Hub")
+        st.title("💼 AI Job Hunt Hub")
         st.caption("AI-powered job search tracker")
         st.markdown("---")
 
