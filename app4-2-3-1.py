@@ -141,11 +141,11 @@ else:
 # ============================================================
 
 MODEL_REGISTRY = {
-    "Qwen 3.5 9B": {
-        "provider": "ai_singapore",  # Routes through the OpenAI-compatible HF serverless endpoint using HF_TOKEN
-        "model_id": "Qwen/Qwen3.5-9B",
-        "description": "Qwen 3.5 9B model from Hugging Face for precise instruction following & anti-hallucination.",
-    },
+    #"Qwen 3.5 9B": {
+    #    "provider": "ai_singapore",  # Routes through the OpenAI-compatible HF serverless endpoint using HF_TOKEN
+    #    "model_id": "Qwen/Qwen3.5-9B",
+    #    "description": "Qwen 3.5 9B model from Hugging Face for precise instruction following & anti-hallucination.",
+    #},
     "Sea-Lion v4 27B": {
         "provider": "ai_singapore",
         "model_id": "aisingapore/Gemma-SEA-LION-v4-27B-IT",
