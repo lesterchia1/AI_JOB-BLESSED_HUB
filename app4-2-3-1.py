@@ -1,5 +1,5 @@
 """
-AI Job Hunt OS — Test Build v4.2.3 (Supabase Edition)
+AI Job Hunt OS — Test Build v4.2.3.2 (Supabase Edition)
 Streamlit app that tracks job applications and uses AI (Groq + AI Singapore)
 to tailor resumes and generate cover letters.
 
