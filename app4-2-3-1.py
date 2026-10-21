@@ -772,12 +772,37 @@ def _unescape_md(text: str) -> str:
     """Remove Markdown backslash escapes such as \\* or \\-."""
     return re.sub(r"\\([\\`*_{}\[\]()#+\-.!|>~])", r"\1", text)
 
+#Start
+#def _parse_markdown_blocks(md: str):
+#    """Minimal Markdown -> [(kind, text)]. kinds: h1/h2/h3, bullet, para, blank."""
+#    blocks = []
+#    for raw in (md or "").replace("\r\n", "\n").split("\n"):
+#        line = re.sub(r"(<br\s*/?>|\\)\s*$", "", raw.rstrip()).rstrip()  # hard-break markers
+#        if not line.strip():
+#            blocks.append(("blank", ""))
+#            continue
+#        if re.match(r"^\s*([-*_])\1{2,}\s*$", line):  # horizontal rule
+#            blocks.append(("blank", ""))
+#            continue
+#        m = re.match(r"^(#{1,3})\s+(.*)$", line)
+#        if m:
+#            blocks.append((f"h{len(m.group(1))}",
+#                           _unescape_md(m.group(2).replace("**", "").strip())))
+#            continue
+#        m = re.match(r"^\s*[-*•]\s+(.*)$", line)
+#        if m:
+#            blocks.append(("bullet", m.group(1).strip()))
+#            continue
+#        blocks.append(("para", line.strip()))
+#    return blocks    
+#end
+
 
 def _parse_markdown_blocks(md: str):
-    """Minimal Markdown -> [(kind, text)]. kinds: h1/h2/h3, bullet, para, blank."""
+    """Enhanced Markdown -> [(kind, text)]. Automatically normalizes loose list items."""
     blocks = []
     for raw in (md or "").replace("\r\n", "\n").split("\n"):
-        line = re.sub(r"(<br\s*/?>|\\)\s*$", "", raw.rstrip()).rstrip()  # hard-break markers
+        line = re.sub(r"(<br\s*/?>|\\)\s*$", "", raw.rstrip()).rstrip()
         if not line.strip():
             blocks.append(("blank", ""))
             continue
@@ -786,13 +811,20 @@ def _parse_markdown_blocks(md: str):
             continue
         m = re.match(r"^(#{1,3})\s+(.*)$", line)
         if m:
-            blocks.append((f"h{len(m.group(1))}",
-                           _unescape_md(m.group(2).replace("**", "").strip())))
+            blocks.append((f"h{len(m.group(1))}", _unescape_md(m.group(2).replace("**", "").strip())))
             continue
-        m = re.match(r"^\s*[-*•]\s+(.*)$", line)
-        if m:
-            blocks.append(("bullet", m.group(1).strip()))
+        
+        # Match explicit bullets or lines starting with dashes/asterisks representing lists
+        m_bullet = re.match(r"^\s*[-*•]\s+(.*)$", line)
+        if m_bullet:
+            blocks.append(("bullet", m_bullet.group(1).strip()))
             continue
+            
+        # Catch implicit list items under competencies/skills that start with a bold category name followed by a dash/colon
+        if re.match(r"^\s*\*\*.*?\*\*\s*[-–:]", line) or re.match(r"^[A-Z][A-Za-z\s&]+\s*[-–:]\s+", line):
+            blocks.append(("bullet", line.strip()))
+            continue
+
         blocks.append(("para", line.strip()))
     return blocks
 
@@ -853,7 +885,7 @@ def markdown_to_pdf_bytes(md: str) -> bytes:
     )
     base = getSampleStyleSheet()
     body = ParagraphStyle("Body", parent=base["BodyText"],
-                          fontName="Helvetica", fontSize=10.5, leading=14)
+                         fontName="Helvetica", fontSize=10.5, leading=14)
     heads = {
         "h1": ParagraphStyle("H1", parent=body, fontName="Helvetica-Bold",
                              fontSize=16, leading=20, spaceAfter=6),
@@ -862,11 +894,20 @@ def markdown_to_pdf_bytes(md: str) -> bytes:
         "h3": ParagraphStyle("H3", parent=body, fontName="Helvetica-Bold",
                              fontSize=11.5, leading=15, spaceBefore=4, spaceAfter=2),
     }
-    bullet_style = ParagraphStyle("Bullet", parent=body, leftIndent=14, bulletIndent=2)
+    # Adjusted indentation to cleanly align bullets and wrapped text
+    bullet_style = ParagraphStyle(
+        "Bullet", 
+        parent=body, 
+        leftIndent=18, 
+        bulletIndent=6, 
+        spaceAfter=3
+    )
 
     def to_markup(text: str) -> str:
+        # Strip leading bullet characters if already present to avoid double-bullet rendering
+        cleaned_text = re.sub(r"^\s*[-*•]\s+", "", text)
         out = []
-        for t, bold, italic in _inline_tokens(text):
+        for t, bold, italic in _inline_tokens(cleaned_text):
             s = xml_escape(t)
             if bold:
                 s = f"<b>{s}</b>"
@@ -882,7 +923,7 @@ def markdown_to_pdf_bytes(md: str) -> bytes:
         elif kind in heads:
             story.append(Paragraph(xml_escape(text), heads[kind]))
         elif kind == "bullet":
-            story.append(Paragraph(to_markup(text), bullet_style, bulletText="•"))
+            story.append(Paragraph(to_spec_markup := to_markup(text), bullet_style, bulletText="•"))
         else:
             story.append(Paragraph(to_markup(text), body))
     if not story:
