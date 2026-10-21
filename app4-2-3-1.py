@@ -799,31 +799,46 @@ def _unescape_md(text: str) -> str:
 
 
 def _parse_markdown_blocks(md: str):
-    """Enhanced Markdown -> [(kind, text)]. Automatically normalizes loose list items."""
+    """Precision Markdown parser that prevents job headers from becoming rogue bullets."""
     blocks = []
+    in_skills_or_competencies = False
+    
     for raw in (md or "").replace("\r\n", "\n").split("\n"):
         line = re.sub(r"(<br\s*/?>|\\)\s*$", "", raw.rstrip()).rstrip()
         if not line.strip():
+            in_skills_or_competencies = False
             blocks.append(("blank", ""))
             continue
-        if re.match(r"^\s*([-*_])\1{2,}\s*$", line):  # horizontal rule
+            
+        if re.match(r"^\s*([-*_])\1{2,}\s*$", line):
             blocks.append(("blank", ""))
             continue
-        m = re.match(r"^(#{1,3})\s+(.*)$", line)
-        if m:
-            blocks.append((f"h{len(m.group(1))}", _unescape_md(m.group(2).replace("**", "").strip())))
+            
+        # Detect section headings to track context
+        m_head = re.match(r"^(#{1,3})\s+(.*)$", line)
+        if m_head:
+            heading_text = m_head.group(2).replace("**", "").strip().upper()
+            if "CORE COMPETENCIES" in heading_text or "TECHNICAL SKILLSETS" in heading_text or "EDUCATION" in heading_text:
+                in_skills_or_competencies = True
+            else:
+                in_skills_or_competencies = False
+            blocks.append((f"h{len(m_head.group(1))}", _unescape_md(m_head.group(2).replace("**", "").strip())))
             continue
         
-        # Match explicit bullets or lines starting with dashes/asterisks representing lists
+        # Explicit Markdown bullets
         m_bullet = re.match(r"^\s*[-*•]\s+(.*)$", line)
         if m_bullet:
             blocks.append(("bullet", m_bullet.group(1).strip()))
             continue
             
-        # Catch implicit list items under competencies/skills that start with a bold category name followed by a dash/colon
-        if re.match(r"^\s*\*\*.*?\*\*\s*[-–:]", line) or re.match(r"^[A-Z][A-Za-z\s&]+\s*[-–:]\s+", line):
-            blocks.append(("bullet", line.strip()))
-            continue
+        # If we are inside Core Competencies, Technical Skillsets, or Education & Certifications, 
+        # treat descriptive lines or diploma lines as bullets automatically.
+        # Ensure we exclude lines that look like Company/Job Title headers (e.g., containing dates or ending with locations like ", Singapore").
+        if in_skills_or_competencies:
+            is_job_header = bool(re.search(r"(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|\b20\d{2}\b)", line)) or line.endswith(", Singapore")
+            if not is_job_header:
+                blocks.append(("bullet", line.strip()))
+                continue
 
         blocks.append(("para", line.strip()))
     return blocks
